@@ -1,14 +1,14 @@
+use env_logger;
+use regex::Regex;
+use std::sync::Mutex;
 use actix_cors::Cors;
-use actix_session::{Session, SessionMiddleware, storage::RedisSessionStore};
-use actix_web::{web, App, HttpServer, HttpResponse, Responder, post, get, Error};
-use actix_web::cookie::{Key, SameSite};
 use actix_web::middleware::Logger;
+use serde::{Deserialize, Serialize};
+use actix_web::cookie::{Key, SameSite};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use rand::{distributions::Alphanumeric, Rng};
-use regex::Regex;
-use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
-use env_logger;
+use actix_session::{Session, SessionMiddleware, storage::RedisSessionStore};
+use actix_web::{web, App, HttpServer, HttpResponse, Responder, post, get, Error};
 
 #[derive(Serialize, Deserialize, Clone)]
 struct PasswordVault {
@@ -121,7 +121,7 @@ async fn show_passwords(session: Session, data: web::Data<AppState>) -> impl Res
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init(); // Initialize logger
+    env_logger::init(); // Init le logger
     let vault = PasswordVault {
         master_key_hash: String::new(),
         passwords: vec![],
@@ -131,7 +131,7 @@ async fn main() -> std::io::Result<()> {
         vault: Mutex::new(vault),
     });
 
-    let secret_key = Key::generate(); // Generate a random key for signing/encrypting cookies
+    let secret_key = Key::generate(); // je gènère une clé aléatoire pour signer/chiffrer les cookies
     let redis_store = RedisSessionStore::new("redis://127.0.0.1:6379").await.map_err(|err| {
         eprintln!("Failed to connect to Redis: {}", err);
         std::io::Error::new(std::io::ErrorKind::Other, "Failed to connect to Redis")
@@ -140,11 +140,11 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         let cors = Cors::permissive();
         App::new()
-            .wrap(Logger::default()) // Enable logging
+            .wrap(Logger::default()) // activer le logger
             .app_data(app_data.clone())
             .wrap(cors)
             .wrap(SessionMiddleware::builder(redis_store.clone(), secret_key.clone())
-                .cookie_secure(false) // Set to true in production
+                .cookie_secure(false) // A passer à true pour la phase production
                 .cookie_http_only(true)
                 .cookie_same_site(SameSite::Lax)
                 .build())
@@ -153,7 +153,7 @@ async fn main() -> std::io::Result<()> {
             .service(add_password)
             .service(show_passwords)
     })
-    .bind("0.0.0.0:8080")?  // Listen on all network interfaces
+    .bind("0.0.0.0:8080")?
     .run()
     .await
 }
